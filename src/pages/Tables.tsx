@@ -22,7 +22,8 @@ import { PageHeader } from "@/components/layout/PageHeader";
 
 import { liveTableResult, buildLatestTableSnapshot } from "@/lib/table-live-result";
 import { useShiftTableAdjustments } from "@/hooks/use-shift-table-adjustments";
-import { GAME_GROUP_ORDER, GAME_GROUP_LABEL, GAME_GROUP_TOTAL_LABEL, gameGroupOf } from "@/lib/table-game-group";
+import { useGameTypes } from "@/hooks/use-game-types";
+import { orderedGroupsFor, GAME_GROUP_ORDER, GAME_GROUP_LABEL, GAME_GROUP_TOTAL_LABEL, gameGroupOf } from "@/lib/table-game-group";
 import TableSeatingDialog from "@/components/pit/TableSeatingDialog";
 
 import type { FloorTable } from "@/components/pit/FloorTableCard";
@@ -70,6 +71,7 @@ const Tables = () => {
   const openAllTables = useOpenAllTables();
   const reopenTable = useReopenTable();
   const { casinoId, user } = useAuth();
+  const { version: gtv } = useGameTypes();
   const isReadOnly = useReadOnlyMode();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -341,19 +343,19 @@ const Tables = () => {
 
   const gameTypeTotals = useMemo(() => {
     const totals: Record<string, { result: number; label: string }> = {};
-    GAME_GROUP_ORDER.forEach(g => {
+    orderedGroupsFor(tables).forEach(g => {
       const ts = tables.filter(t => gameGroupOf(t.name, t.game) === g);
       if (ts.length === 0) return;
       totals[g] = { label: GAME_GROUP_TOTAL_LABEL[g], result: ts.reduce((s, t) => s + (tableStats[t.id]?.result || 0), 0) };
     });
     return totals;
-  }, [tables, tableStats]);
+  }, [tables, tableStats, gtv]);
 
   const totalResult = Object.values(tableStats).reduce((s, r) => s + r.result, 0);
 
   const byOrder = (a: any, b: any) =>
     ((a.display_order ?? 0) - (b.display_order ?? 0)) || a.name.localeCompare(b.name);
-  const tablesByGame = GAME_GROUP_ORDER
+  const tablesByGame = orderedGroupsFor(tables)
     .map(g => ({ g, list: tables.filter(t => gameGroupOf(t.name, t.game) === g).sort(byOrder) }))
     .filter(x => x.list.length > 0);
 

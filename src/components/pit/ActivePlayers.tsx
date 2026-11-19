@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
-import { GAME_GROUP_ORDER, GAME_GROUP_LABEL, gameGroupOf } from "@/lib/table-game-group";
+import { useGameTypes } from "@/hooks/use-game-types";
+import { orderedGroupsFor, GAME_GROUP_ORDER, GAME_GROUP_LABEL, gameGroupOf } from "@/lib/table-game-group";
 import { usePlayers, useTransactions, useGamingTables } from "@/hooks/use-casino-data";
 import { usePlayersWithCheckedIn } from "@/hooks/use-players";
 import { Input } from "@/components/ui/input";
@@ -29,6 +30,7 @@ const ActivePlayers = () => {
   const windowStartUTC = businessDayHourUTC(today, 7);
   const { data: transactions = [] } = useTransactions(today);
   const { casinoId, user, roles } = useAuth();
+  const { version: gtv } = useGameTypes();
   const canTransfer = roles.some(r => ["pit", "manager", "super_admin"].includes(r));
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -268,10 +270,10 @@ const ActivePlayers = () => {
   // Split tables into AR/BJ vs Poker columns (matches /tables page layout)
   const sortedTables = useMemo(() => {
     const all = [...tables].sort((a, b) => a.name.localeCompare(b.name));
-    return GAME_GROUP_ORDER
+    return orderedGroupsFor(all)
       .map(g => ({ g, list: all.filter(t => gameGroupOf(t.name, t.game) === g) as FloorTable[] }))
       .filter(x => x.list.length > 0);
-  }, [tables]);
+  }, [tables, gtv]);
 
   // Search filter on tables (by player name)
   const tableMatchesSearch = (tableId: string): boolean => {

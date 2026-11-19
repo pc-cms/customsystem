@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { GAME_GROUP_ORDER, GAME_GROUP_TOTAL_LABEL, gameGroupOf } from "@/lib/table-game-group";
+import { useGameTypes } from "@/hooks/use-game-types";
+import { orderedGroupsFor, GAME_GROUP_ORDER, GAME_GROUP_TOTAL_LABEL, gameGroupOf } from "@/lib/table-game-group";
 import { Receipt, LayoutDashboard, Users } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -136,6 +137,7 @@ const SummaryPanel = ({
 
 const Dashboard = () => {
   const { displayName, roles, casinoId } = useAuth();
+  const { version: gtv } = useGameTypes();
   // Boss role lands on the TV overview instead of the operational dashboard.
   if (roles.includes("boss") && !roles.includes("super_admin")) {
     return <Navigate to="/boss-dashboard" replace />;
@@ -215,13 +217,13 @@ const Dashboard = () => {
 
   const gameTypeTotals = useMemo(() => {
     const totals: Record<string, { result: number; label: string }> = {};
-    GAME_GROUP_ORDER.forEach(g => {
+    orderedGroupsFor(tables).forEach(g => {
       const ts = tables.filter(t => gameGroupOf(t.name, t.game) === g);
       if (ts.length === 0) return;
       totals[g] = { label: GAME_GROUP_TOTAL_LABEL[g], result: ts.reduce((s, t) => s + (tableStats[t.id]?.result || 0), 0) };
     });
     return totals;
-  }, [tables, tableStats]);
+  }, [tables, tableStats, gtv]);
 
   const totalResult = Object.values(tableStats).reduce((s, r) => s + r.result, 0);
 

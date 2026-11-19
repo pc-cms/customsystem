@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useGameTypes } from "@/hooks/use-game-types";
 import { GAME_GROUP_ORDER, GAME_GROUP_TOTAL_LABEL, gameGroupOf } from "@/lib/table-game-group";
 import { Button } from "@/components/ui/button";
 import { Save, Maximize2, Minimize2, History, Tablet } from "lucide-react";
@@ -54,6 +55,7 @@ interface ChipCountPanelProps {
  */
 export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
   const { isManager } = useAuth();
+  const { version: gtv } = useGameTypes();
   const { startHour: liveStartHour } = useLiveStart(date);
 
   const today = getBusinessDate();
@@ -89,6 +91,7 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
   const visibleSet = useMemo(() => new Set(visibleCasinoDenoms), [visibleCasinoDenoms]);
 
   const countLocations = useMemo(() => {
+    openTables.forEach((t: any) => gameGroupOf(t.name, t.game));
     const ord = (t: any) => GAME_GROUP_ORDER.indexOf(gameGroupOf(t.name, t.game));
     return [...openTables].sort((a, b) => ord(a) - ord(b)).map(t => ({
       key: `table-${t.id}`,
@@ -98,7 +101,7 @@ export const ChipCountPanel = ({ date }: ChipCountPanelProps) => {
       id: t.id,
       denoms: (t.denominations || []).filter(d => visibleSet.has(d)),
     }));
-  }, [openTables, visibleSet]);
+  }, [openTables, visibleSet, gtv]);
 
   const latestSnapshotPerTable = useMemo(() => {
     const map: Record<string, { actual: Record<number, number>; expected: Record<number, number> }> = {};

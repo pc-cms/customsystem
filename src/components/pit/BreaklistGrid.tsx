@@ -852,7 +852,7 @@ const BreaklistGrid = forwardRef<BreaklistGridRef, BreaklistGridProps>(({ date, 
                 <div className="border-t border-border pt-1 space-y-0.5">
                   <p className="text-[8px] text-muted-foreground uppercase px-1">Assign to table</p>
                   {openTables.map(t => {
-                    const roles = TABLE_ROLES[t.game] || [];
+                    const roles = TABLE_ROLES[t.game] || ["P", "Pi"];
                     const rSuffix: Record<string, string> = {
                       ARi: "i", ARc: "c", AR1i: "i", AR1c: "c",
                       Pi: "i", BJi: "i",

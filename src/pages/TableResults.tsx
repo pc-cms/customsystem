@@ -29,32 +29,32 @@ import { useCasino } from "@/lib/casino-context";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchPaged } from "@/lib/fetch-paged";
-import { GAME_GROUP_ORDER, gameGroupOf, naturalCompare, type GameGroup } from "@/lib/table-game-group";
+import { GAME_GROUP_ORDER, GAME_GROUP_LABEL, gameGroupOf, naturalCompare, type GameGroup } from "@/lib/table-game-group";
+import { useGameTypes } from "@/hooks/use-game-types";
 
 /* ------------------------------------------------------------------ */
 /* Layout config — order of columns in the horizontal report          */
 /* ------------------------------------------------------------------ */
 type GroupKey0 = GameGroup;
-const GROUP_ORDER: GroupKey0[] = GAME_GROUP_ORDER;
-const tint = (v: string, a: number) =>
-  `[background-image:linear-gradient(hsl(var(--${v})/${a}),hsl(var(--${v})/${a})),linear-gradient(hsl(var(--muted)),hsl(var(--muted)))]`;
-const GROUPS: Record<GroupKey0, {
-  label: string; short: string;
-  sub: "amber" | "emerald" | "rose" | "info" | "other";
-  tot: "warning" | "success" | "destructive" | "info" | "other";
-  headBg: string;
-}> = {
-  AR: { label: "American Roulette", short: "AR", sub: "amber", tot: "warning", headBg: "[background-image:linear-gradient(hsl(var(--warning)/0.12),hsl(var(--warning)/0.12)),linear-gradient(hsl(var(--muted)),hsl(var(--muted)))]" },
-  PK: { label: "Poker (PK)", short: "PK", sub: "emerald", tot: "success", headBg: "[background-image:linear-gradient(hsl(var(--success)/0.12),hsl(var(--success)/0.12)),linear-gradient(hsl(var(--muted)),hsl(var(--muted)))]" },
-  BJ: { label: "Blackjack", short: "BJ", sub: "rose", tot: "destructive", headBg: "[background-image:linear-gradient(hsl(var(--destructive)/0.12),hsl(var(--destructive)/0.12)),linear-gradient(hsl(var(--muted)),hsl(var(--muted)))]" },
-  NIU: { label: "Niu Niu", short: "NIU", sub: "other", tot: "other", headBg: "[background-image:linear-gradient(hsl(var(--primary)/0.12),hsl(var(--primary)/0.12)),linear-gradient(hsl(var(--muted)),hsl(var(--muted)))]" },
-  BAC: { label: "Baccarat", short: "BAC", sub: "info", tot: "info", headBg: "[background-image:linear-gradient(hsl(var(--info)/0.10),hsl(var(--info)/0.10)),linear-gradient(hsl(var(--muted)),hsl(var(--muted)))]" },
-  CLUB: { label: "Club Poker", short: "CLUB", sub: "info", tot: "info", headBg: "[background-image:linear-gradient(hsl(var(--info)/0.18),hsl(var(--info)/0.18)),linear-gradient(hsl(var(--muted)),hsl(var(--muted)))]" },
-  OTHER: { label: "Other Games", short: "OTHER", sub: "other", tot: "other", headBg: "[background-image:linear-gradient(hsl(var(--accent-foreground)/0.10),hsl(var(--accent-foreground)/0.10)),linear-gradient(hsl(var(--muted)),hsl(var(--muted)))]" },
+const PALETTE = ["warning", "success", "destructive", "primary", "info", "accent-foreground"] as const;
+const SUB_OF: Record<string, "amber" | "emerald" | "rose" | "primary" | "info" | "other"> = {
+  warning: "amber", success: "emerald", destructive: "rose", primary: "primary", info: "info", "accent-foreground": "other",
 };
-void tint;
+const GROUPS = new Proxy({} as Record<string, { label: string; short: string; tone: string; sub: "amber" | "emerald" | "rose" | "primary" | "info" | "other"; headBg: string }>, {
+  get: (_t, g: string) => {
+    const idx = Math.max(0, GAME_GROUP_ORDER.indexOf(g));
+    const tone = PALETTE[idx % PALETTE.length];
+    return {
+      label: GAME_GROUP_LABEL[g] ?? g,
+      short: g,
+      tone,
+      sub: SUB_OF[tone],
+      headBg: `[background-image:linear-gradient(hsl(var(--${tone})/0.14),hsl(var(--${tone})/0.14)),linear-gradient(hsl(var(--muted)),hsl(var(--muted)))]`,
+    };
+  },
+});
 
-export const tableGroupOf = (name: string): GroupKey0 => gameGroupOf(name);
+export const tableGroupOf = (name: string, game?: string | null): GroupKey0 => gameGroupOf(name, game);
 
 const PRESETS = [
   { key: "week", label: "Week" },
@@ -297,26 +297,29 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
   }, [from, to]);
 
   /* Every table that has results in the period, grouped by game */
-  const tablesByGroup = useMemo(() => {
-    const names = new Set<string>();
+  const { version: gtv } = useGameTypes();
+  const { tablesByGroup, groupOrder } = useMemo(() => {
+    const games = new Map<string, string | undefined>();
     for (const r of data as Row[]) {
       const n = r.gaming_tables?.name;
-      if (n) names.add(n);
+      if (n && !games.has(n)) games.set(n, r.gaming_tables?.game);
     }
-    const out: Record<GroupKey, string[]> = { AR: [], PK: [], BJ: [], NIU: [], BAC: [], CLUB: [], OTHER: [] };
-    for (const n of names) out[tableGroupOf(n)].push(n);
-    for (const g of GROUP_ORDER) out[g].sort(naturalCompare);
-    return out;
-  }, [data]);
+    const out: Record<GroupKey, string[]> = {};
+    for (const [n, g] of games) (out[tableGroupOf(n, g)] ||= []).push(n);
+    for (const g of Object.keys(out)) out[g].sort(naturalCompare);
+    const order = GAME_GROUP_ORDER.filter((g) => out[g]?.length);
+    return { tablesByGroup: out, groupOrder: order };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, gtv]);
 
   /* Visible columns after group/table filters */
   const visibleGroups = useMemo(
     () =>
-      GROUP_ORDER
+      groupOrder
         .filter((g) => !hiddenGroups.includes(g))
         .map((g) => ({ key: g, tables: tablesByGroup[g].filter((t) => !hiddenTables.includes(t)) }))
         .filter((g) => g.tables.length > 0),
-    [tablesByGroup, hiddenGroups, hiddenTables],
+    [tablesByGroup, groupOrder, hiddenGroups, hiddenTables],
   );
   const visibleTables = visibleGroups.flatMap((g) => g.tables);
 
@@ -400,40 +403,61 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
   }, [dropByDate]);
   const dropForDay = (date: string) => dropByDate.get(date) ?? 0;
 
-  const allTablesFlat = GROUP_ORDER.flatMap((g) => tablesByGroup[g]);
+  const allTablesFlat = groupOrder.flatMap((g) => tablesByGroup[g]);
   const hasFilters = hiddenGroups.length > 0 || hiddenTables.length > 0;
   const pct = (d: number, r: number) => (d > 0 ? Number(((r / d) * 100).toFixed(2)) : "");
 
+  const showDP = showPerTableDrop;
+  const daysWithData = buckets.filter((b) => Object.keys(b.cells).length > 0).length;
+  const avgDrop = daysWithData ? periodTotalDrop / daysWithData : 0;
+  const avgResult = daysWithData ? totals.totalResult / daysWithData : 0;
+  const monthName = (iso: string) => format(new Date(iso + "T12:00:00"), "MMM-yy");
+
   const exportExcel = () => {
-    const header: (string | number)[] = ["Date", "Weekday"];
-    for (const t of visibleTables) header.push(...(showPerTableDrop ? [`${t} Drop`, `${t} Result`, `${t} Hold%`] : [`${t} Result`]));
-    for (const g of visibleGroups) header.push(...(showPerTableDrop ? [`${g.key} Drop`, `${g.key} Result`] : [`${g.key} Result`]));
-    header.push("Total Drop", "Total Result", "Total Hold%");
-    const rows: (string | number | null)[][] = [header];
+    const rows: (string | number | null)[][] = [];
+    rows.push(["Report Period:", "", "From", fmtDate(from), "To", fmtDate(to)]);
+    rows.push([]);
+    rows.push(["Game", "Drop", "Result", "Hold %"]);
+    for (const g of visibleGroups) {
+      const d = groupTotalDrop(g.tables), r = groupTotal(g.tables);
+      rows.push([`Total ${GROUPS[g.key].label}`, d, r, pct(d, r)]);
+    }
+    rows.push(["Total Live", periodTotalDrop, totals.totalResult, pct(periodTotalDrop, totals.totalResult)]);
+    rows.push(["Average Drop", avgDrop, "", ""]);
+    rows.push(["Average Result", "", avgResult, ""]);
+    rows.push([]);
+    const header: (string | number)[] = ["Date", "Month", "Day"];
+    const tri = (n: string) => (showDP ? [`${n} D`, `${n} R`, `${n} %`] : [`${n} R`]);
+    for (const g of visibleGroups) {
+      for (const t of g.tables) header.push(...tri(t));
+      header.push(...tri(`Total ${g.key}`));
+    }
+    header.push(...tri("Live"));
+    rows.push(header);
+    const triVals = (d: number, r: number, has = true) =>
+      !has ? (showDP ? ["", "", ""] : [""]) : showDP ? [d, r, pct(d, r)] : [r];
     for (const b of sortedBuckets) {
-      const r: (string | number | null)[] = [b.date, dayName(b.date)];
-      for (const t of visibleTables) {
-        const c = b.cells[t];
-        if (!showPerTableDrop) r.push(c?.hasData ? c.result : "");
-        else if (c?.hasData) r.push(c.drop, c.result, pct(c.drop, c.result));
-        else r.push("", "", "");
+      const r: (string | number | null)[] = [fmtDate(b.date), monthName(b.date), dayName(b.date)];
+      for (const g of visibleGroups) {
+        for (const t of g.tables) {
+          const c = b.cells[t];
+          r.push(...triVals(c?.drop || 0, c?.result || 0, !!c?.hasData));
+        }
+        r.push(...triVals(groupDrop(b, g.tables), groupResult(b, g.tables)));
       }
-      for (const g of visibleGroups) r.push(...(showPerTableDrop ? [groupDrop(b, g.tables)] : []), groupResult(b, g.tables));
-      const dayTot = dropForDay(b.date);
-      r.push(dayTot, b.totalResult, pct(dayTot, b.totalResult));
+      r.push(...triVals(dropForDay(b.date), b.totalResult));
       rows.push(r);
     }
-    const totalsRow: (string | number | null)[] = ["TOTAL", ""];
-    for (const t of visibleTables) {
-      const c = totals.cellsTotal[t];
-      if (!showPerTableDrop) totalsRow.push(c ? c.result : "");
-      else if (c) totalsRow.push(c.drop, c.result, pct(c.drop, c.result));
-      else totalsRow.push("", "", "");
+    const tot: (string | number | null)[] = ["TOTAL", "", ""];
+    for (const g of visibleGroups) {
+      for (const t of g.tables) {
+        const c = totals.cellsTotal[t];
+        tot.push(...triVals(c?.drop || 0, c?.result || 0, !!c));
+      }
+      tot.push(...triVals(groupTotalDrop(g.tables), groupTotal(g.tables)));
     }
-    for (const g of visibleGroups) totalsRow.push(...(showPerTableDrop ? [groupTotalDrop(g.tables)] : []), groupTotal(g.tables));
-    totalsRow.push(periodTotalDrop, totals.totalResult, pct(periodTotalDrop, totals.totalResult));
-    rows.push([]);
-    rows.push(totalsRow);
+    tot.push(...triVals(periodTotalDrop, totals.totalResult));
+    rows.push(tot);
     downloadXlsx(`table-results_${from}_${to}.xlsx`, [{ name: "Table Results", rows }]);
   };
 
@@ -617,7 +641,7 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
         {allTablesFlat.length > 0 && (
           <div className="flex items-center gap-1.5 flex-wrap mt-3 pt-3 border-t border-border/60">
             <span className="text-[10px] uppercase tracking-wide text-muted-foreground mr-1">Games</span>
-            {GROUP_ORDER.filter((g) => tablesByGroup[g].length > 0).map((g) => {
+            {groupOrder.map((g) => {
               const on = !hiddenGroups.includes(g);
               return (
                 <Button
@@ -642,7 +666,7 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
               </PopoverTrigger>
               <PopoverContent className="w-64 p-3" align="start">
                 <div className="space-y-3 max-h-80 overflow-auto">
-                  {GROUP_ORDER.filter((g) => tablesByGroup[g].length > 0).map((g) => (
+                  {groupOrder.map((g) => (
                     <div key={g}>
                       <div className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">{GROUPS[g].label}</div>
                       <div className="grid grid-cols-3 gap-1.5">
@@ -672,7 +696,7 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
               className="h-7 px-2 text-xs"
               onClick={() => saveFilters(hiddenGroups, hiddenTables, !showPerTableDrop)}
             >
-              Drop
+              Drop & %
             </Button>
             {hasFilters && (
               <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => saveFilters([], [], showPerTableDrop)}>
@@ -697,82 +721,94 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
         </Card>
       )}
 
-      {/* Excel-style horizontal report */}
+      {/* Summary tiles: per game, Live, averages */}
+      {!isLoading && buckets.length > 0 && (
+        <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))" }}>
+          {visibleGroups.map((g) => {
+            const d = groupTotalDrop(g.tables), r = groupTotal(g.tables);
+            return <SummaryTile key={g.key} title={`Total ${GROUPS[g.key].label}`} drop={d} result={r} tone={GROUPS[g.key].tone} />;
+          })}
+          <SummaryTile title="Total Live" drop={periodTotalDrop} result={totals.totalResult} tone="primary" strong />
+          <Card className="p-3 space-y-1">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Average per day ({daysWithData}d)</p>
+            <p className="font-mono text-xs flex justify-between"><span className="text-muted-foreground">Drop</span><span>{formatSpaced(Math.round(avgDrop))}</span></p>
+            <p className="font-mono text-xs flex justify-between"><span className="text-muted-foreground">Result</span><span className={avgResult < 0 ? "cms-amount-negative" : "cms-amount-positive"}>{formatSpaced(Math.round(avgResult))}</span></p>
+          </Card>
+        </div>
+      )}
+
+      {/* Excel-style horizontal report: D | R | % per table */}
       {!isLoading && buckets.length > 0 && (
         <Card className="p-0 overflow-hidden">
           <div className="overflow-x-auto [container-type:inline-size] relative">
-            <table className="w-full caption-bottom text-[13px] tabular-nums [&_tbody_tr]:transition-colors [&_tbody_tr:hover]:bg-primary/[0.06] [&_th]:h-8 [&_th]:px-2 [&_td]:p-2 [&_thead_th]:sticky [&_tbody_tr]:border-b [&_tbody_tr]:border-border/60">
+            <table className="w-full caption-bottom text-[12px] tabular-nums [&_tbody_tr]:transition-colors [&_tbody_tr:hover]:bg-primary/[0.06] [&_th]:h-8 [&_th]:px-1.5 [&_td]:px-1.5 [&_td]:py-1.5 [&_thead_th]:sticky [&_tbody_tr]:border-b [&_tbody_tr]:border-border/60">
               <TableHeader>
                 <TableRow className="bg-muted hover:bg-muted">
-                  <TableHead
-                    className="sticky left-0 top-0 bg-muted z-30 w-36 min-w-36 border-r-2 border-r-border whitespace-nowrap cursor-pointer select-none"
-                    onClick={() => toggleSort("date")}
-                  >
+                  <TableHead colSpan={3} className="sticky left-0 top-0 bg-muted z-30 border-r-2 border-r-border whitespace-nowrap cursor-pointer select-none" onClick={() => toggleSort("date")}>
                     Date{sortMark("date")}
                   </TableHead>
                   {visibleGroups.map((g) => (
-                    <TableHead
-                      key={g.key}
-                      colSpan={g.tables.length}
-                      className={cn("sticky top-0 z-20 text-center font-semibold border-r-2 border-r-border", GROUPS[g.key].headBg)}
-                    >
+                    <TableHead key={g.key} colSpan={(g.tables.length + 1) * (showDP ? 3 : 1)} className={cn("top-0 z-20 text-center font-semibold border-r-2 border-r-border", GROUPS[g.key].headBg)}>
                       {GROUPS[g.key].label}
                     </TableHead>
                   ))}
-                  <TableHead
-                    colSpan={1}
-                    className="sticky top-0 z-20 text-center font-semibold [background-image:linear-gradient(hsl(var(--primary)/0.22),hsl(var(--primary)/0.22)),linear-gradient(hsl(var(--muted)),hsl(var(--muted)))]"
-                  >
-                    Total Tables
+                  <TableHead colSpan={showDP ? 3 : 1} className="top-0 z-20 text-center font-semibold [background-image:linear-gradient(hsl(var(--primary)/0.22),hsl(var(--primary)/0.22)),linear-gradient(hsl(var(--muted)),hsl(var(--muted)))]">
+                    Live
                   </TableHead>
                 </TableRow>
-
                 <TableRow className="bg-muted hover:bg-muted">
-                  <TableHead className="sticky left-0 top-8 bg-muted z-30 w-36 min-w-36 border-r-2 border-r-border" />
-                  {visibleGroups.map((g) =>
-                    g.tables.map((t, i) => (
-                      <SubHead
-                        key={t}
-                        name={(g.key === "PK" ? t.replace(/^P/i, "PK") : g.key === "CLUB" ? "CLUB" : t) + sortMark(`t:${t}`)}
-                        accent={GROUPS[g.key].sub}
-                        groupEnd={i === g.tables.length - 1}
-                        onClick={() => toggleSort(`t:${t}`)}
-                      />
-                    )),
-                  )}
-                  <SubHead name={"ALL" + sortMark("all")} accent="primary" bold onClick={() => toggleSort("all")} />
-                </TableRow>
-
-                <TableRow className="bg-primary/10 hover:bg-primary/10 border-b-2 border-b-primary/40">
-                  <TableHead className="sticky left-0 top-16 z-30 border-r-2 border-r-border text-[10px] uppercase tracking-wide font-semibold whitespace-nowrap [background-image:linear-gradient(hsl(var(--primary)/0.3),hsl(var(--primary)/0.3)),linear-gradient(hsl(var(--muted)),hsl(var(--muted)))]">
-                    Σ Period ({buckets.length}d)
+                  <TableHead className="sticky left-0 top-8 bg-muted z-30 min-w-24">Date</TableHead>
+                  <TableHead className="top-8 bg-muted z-20">Month</TableHead>
+                  <TableHead className="top-8 bg-muted z-20 border-r-2 border-r-border">Day</TableHead>
+                  {visibleGroups.map((g) => (
+                    <Fragment key={g.key}>
+                      {g.tables.map((t) => (
+                        <TableHead key={t} colSpan={showDP ? 3 : 1} onClick={() => toggleSort(`t:${t}`)} className={cn("top-8 z-20 text-center font-semibold cursor-pointer select-none border-r border-r-border/40", GROUPS[g.key].headBg)}>
+                          {t}{sortMark(`t:${t}`)}
+                        </TableHead>
+                      ))}
+                      <TableHead colSpan={showDP ? 3 : 1} onClick={() => toggleSort(`g:${g.key}`)} className={cn("top-8 z-20 text-center font-bold cursor-pointer select-none border-r-2 border-r-border", GROUPS[g.key].headBg)}>
+                        Σ {g.key}{sortMark(`g:${g.key}`)}
+                      </TableHead>
+                    </Fragment>
+                  ))}
+                  <TableHead colSpan={showDP ? 3 : 1} onClick={() => toggleSort("all")} className="top-8 z-20 text-center font-bold cursor-pointer select-none [background-image:linear-gradient(hsl(var(--primary)/0.22),hsl(var(--primary)/0.22)),linear-gradient(hsl(var(--muted)),hsl(var(--muted)))]">
+                    ALL{sortMark("all")}
                   </TableHead>
-                  {visibleGroups.map((g) =>
-                    g.tables.map((t, i) => {
-                      const c = totals.cellsTotal[t] || { drop: 0, result: 0 };
-                      return <DRHeadCell key={t} drop={c.drop} result={c.result} groupEnd={i === g.tables.length - 1} alwaysShowDrop={showPerTableDrop} />;
-                    }),
-                  )}
-                  <DRHeadCell drop={periodTotalDrop} result={totals.totalResult} bold alwaysShowDrop />
                 </TableRow>
-                <TableRow className="bg-muted hover:bg-muted border-b border-border">
-                  <TableHead className="sticky left-0 top-24 z-30 bg-muted border-r-2 border-r-border text-[10px] uppercase font-semibold whitespace-nowrap">
-                    Σ by group
+                {showDP && (
+                  <TableRow className="bg-muted hover:bg-muted">
+                    <TableHead colSpan={3} className="sticky left-0 top-16 bg-muted z-30 border-r-2 border-r-border" />
+                    {visibleGroups.map((g) => (
+                      <Fragment key={g.key}>
+                        {[...g.tables, "__sum"].map((t, i, arr) => (
+                          <Fragment key={t}>
+                            <TableHead className="top-16 bg-muted z-20 text-right text-[10px] text-muted-foreground">D</TableHead>
+                            <TableHead className="top-16 bg-muted z-20 text-right text-[10px] text-muted-foreground">R</TableHead>
+                            <TableHead className={cn("top-16 bg-muted z-20 text-right text-[10px] text-muted-foreground", i === arr.length - 1 ? "border-r-2 border-r-border" : "border-r border-r-border/40")}>%</TableHead>
+                          </Fragment>
+                        ))}
+                      </Fragment>
+                    ))}
+                    <TableHead className="top-16 bg-muted z-20 text-right text-[10px] text-muted-foreground">D</TableHead>
+                    <TableHead className="top-16 bg-muted z-20 text-right text-[10px] text-muted-foreground">R</TableHead>
+                    <TableHead className="top-16 bg-muted z-20 text-right text-[10px] text-muted-foreground">%</TableHead>
+                  </TableRow>
+                )}
+                <TableRow className="border-b-2 border-b-primary/40">
+                  <TableHead colSpan={3} className={cn("sticky left-0 z-30 border-r-2 border-r-border text-[10px] uppercase tracking-wide font-semibold whitespace-nowrap bg-muted", showDP ? "top-24" : "top-16")}>
+                    TOTAL ({buckets.length}d)
                   </TableHead>
                   {visibleGroups.map((g) => (
-                    <GroupTotalCells
-                      key={g.key}
-                      colSpan={g.tables.length}
-                      drop={groupTotalDrop(g.tables)}
-                      showDrop={showPerTableDrop}
-                      result={groupTotal(g.tables)}
-                      accent={GROUPS[g.key].tot}
-                      header
-                      onClick={() => toggleSort(`g:${g.key}`)}
-                      suffix={sortMark(`g:${g.key}`)}
-                    />
+                    <Fragment key={g.key}>
+                      {g.tables.map((t) => {
+                        const c = totals.cellsTotal[t] || { drop: 0, result: 0 };
+                        return <Tri key={t} head top={showDP ? "top-24" : "top-16"} drop={c.drop} result={c.result} showDP={showDP} />;
+                      })}
+                      <Tri head top={showDP ? "top-24" : "top-16"} drop={groupTotalDrop(g.tables)} result={groupTotal(g.tables)} showDP={showDP} bold groupEnd />
+                    </Fragment>
                   ))}
-                  <GroupTotalCells colSpan={1} drop={periodTotalDrop} showDrop result={totals.totalResult} accent="primary" noBorder header />
+                  <Tri head top={showDP ? "top-24" : "top-16"} drop={periodTotalDrop} result={totals.totalResult} showDP={showDP} bold />
                 </TableRow>
               </TableHeader>
 
@@ -781,51 +817,36 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
                   const isOpen = openDate === b.date;
                   const prev = sortedBuckets[idx - 1];
                   const isWeekBoundary = sort.key === "date" && (!prev || weekKey(prev.date) !== weekKey(b.date));
-                  const zebra = idx % 2 === 0 ? "bg-card" : "bg-muted/30";
                   const stickyZebra = idx % 2 === 0 ? "bg-card" : "bg-muted";
                   return (
                     <Fragment key={b.date}>
                       <TableRow
-                        className={cn(
-                          "cursor-pointer hover:bg-accent/30 transition-colors",
-                          zebra,
-                          isWeekBoundary && "border-t-2 border-t-primary/40",
-                        )}
+                        className={cn("cursor-pointer", idx % 2 === 0 ? "bg-card" : "bg-muted/30", isWeekBoundary && "border-t-2 border-t-primary/40")}
                         onClick={() => setOpenDate(isOpen ? null : b.date)}
                       >
-                        <TableCell className={cn("sticky left-0 z-10 border-r font-medium hover:bg-accent/30", stickyZebra)}>
-                          <div className="flex items-center gap-1.5 whitespace-nowrap">
-                            <ChevronRight
-                              className={cn("w-3.5 h-3.5 transition-transform text-muted-foreground shrink-0", isOpen && "rotate-90")}
-                            />
+                        <TableCell className={cn("sticky left-0 z-10 font-medium", stickyZebra)}>
+                          <div className="flex items-center gap-1 whitespace-nowrap">
+                            <ChevronRight className={cn("w-3.5 h-3.5 transition-transform text-muted-foreground shrink-0", isOpen && "rotate-90")} />
                             <span className="font-mono">{fmtDate(b.date)}</span>
-                            <span className="text-[10px] text-muted-foreground ml-auto pl-2">{dayName(b.date)}</span>
                           </div>
                         </TableCell>
-
-                        {visibleGroups.map((g) =>
-                          g.tables.map((t, i) => {
-                            const c = b.cells[t] || emptyCell;
-                            return (
-                              <DRCell
-                                key={t}
-                                drop={c.drop}
-                                result={c.result}
-                                hasData={c.hasData}
-                                groupEnd={i === g.tables.length - 1}
-                                alwaysShowDrop={showPerTableDrop}
-                                accent={g.key === "CLUB" ? "info" : undefined}
-                              />
-                            );
-                          }),
-                        )}
-
-                        <DRCell drop={dropForDay(b.date)} result={b.totalResult} hasData bold alwaysShowDrop />
+                        <TableCell className="text-muted-foreground whitespace-nowrap">{monthName(b.date)}</TableCell>
+                        <TableCell className="text-muted-foreground whitespace-nowrap border-r-2 border-r-border">{dayName(b.date)}</TableCell>
+                        {visibleGroups.map((g) => (
+                          <Fragment key={g.key}>
+                            {g.tables.map((t) => {
+                              const c = b.cells[t] || emptyCell;
+                              return <Tri key={t} drop={c.drop} result={c.result} showDP={showDP} empty={!c.hasData} />;
+                            })}
+                            <Tri drop={groupDrop(b, g.tables)} result={groupResult(b, g.tables)} showDP={showDP} bold groupEnd tint={GROUPS[g.key].tone} />
+                          </Fragment>
+                        ))}
+                        <Tri drop={dropForDay(b.date)} result={b.totalResult} showDP={showDP} bold tint="primary" />
                       </TableRow>
 
                       {isOpen && (
                         <TableRow className="bg-muted/10 hover:bg-muted/10">
-                          <TableCell colSpan={1 + visibleTables.length + 1} className="p-0">
+                          <TableCell colSpan={3 + (visibleTables.length + visibleGroups.length + 1) * (showDP ? 3 : 1)} className="p-0">
                             <div className="sticky left-0 w-[100cqw] max-w-full">
                               <DayDetail rows={b.fullRows} date={b.date} totalDropFromCache={dropForDay(b.date)} inByTable={inByDateTable.get(b.date)} />
                             </div>
@@ -847,6 +868,53 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
 /* ------------------------------------------------------------------ */
 /* Sub-components                                                     */
 /* ------------------------------------------------------------------ */
+
+const fmtPct = (d: number, r: number) => (d > 0 ? `${((r / d) * 100).toFixed(1)}%` : "·");
+const signCls = (v: number) => (v < 0 ? "cms-amount-negative" : v > 0 ? "cms-amount-positive" : "text-muted-foreground");
+
+/** Drop | Result | Hold% triple (or Result only when Drop & % is hidden). */
+const Tri = ({
+  drop, result, showDP, bold, groupEnd, empty, head, top, tint,
+}: {
+  drop: number; result: number; showDP: boolean; bold?: boolean; groupEnd?: boolean;
+  empty?: boolean; head?: boolean; top?: string; tint?: string;
+}) => {
+  const C: any = head ? TableHead : TableCell;
+  const base = cn(
+    "text-right font-mono tabular-nums whitespace-nowrap",
+    bold && "font-semibold",
+    head && cn(top, "z-10 bg-muted text-foreground"),
+  );
+  const style = tint && !head ? { backgroundColor: `hsl(var(--${tint}) / 0.07)` } : undefined;
+  const end = groupEnd ? "border-r-2 border-r-border" : "border-r border-r-border/40";
+  if (empty) {
+    return showDP ? (
+      <>
+        <C className={cn(base, "text-muted-foreground/40")}>·</C>
+        <C className={cn(base, "text-muted-foreground/40")}>·</C>
+        <C className={cn(base, "text-muted-foreground/40", end)}>·</C>
+      </>
+    ) : <C className={cn(base, "text-muted-foreground/40", end)}>·</C>;
+  }
+  const r = <C className={cn(base, signCls(result), !showDP && end)} style={style}>{result === 0 ? "·" : formatSpaced(result)}</C>;
+  if (!showDP) return r;
+  return (
+    <>
+      <C className={cn(base, "text-muted-foreground")} style={style}>{drop === 0 ? "·" : formatSpaced(drop)}</C>
+      {r}
+      <C className={cn(base, signCls(result), end)} style={style}>{fmtPct(drop, result)}</C>
+    </>
+  );
+};
+
+const SummaryTile = ({ title, drop, result, tone, strong }: { title: string; drop: number; result: number; tone: string; strong?: boolean }) => (
+  <Card className={cn("p-3 space-y-1", strong && "border-primary/40")} style={{ backgroundColor: `hsl(var(--${tone}) / 0.06)` }}>
+    <p className="text-[10px] uppercase tracking-wider text-muted-foreground truncate">{title}</p>
+    <p className="font-mono text-xs flex justify-between"><span className="text-muted-foreground">Drop</span><span>{formatSpaced(drop)}</span></p>
+    <p className="font-mono text-xs flex justify-between"><span className="text-muted-foreground">Result</span><span className={signCls(result)}>{formatSpaced(result)}</span></p>
+    <p className="font-mono text-xs flex justify-between"><span className="text-muted-foreground">Hold</span><span className={signCls(result)}>{fmtPct(drop, result)}</span></p>
+  </Card>
+);
 
 // Solid backgrounds via layered gradients so sticky headers fully cover scrolling content.
 const accentBg: Record<string, string> = {
@@ -1061,7 +1129,7 @@ const DayDetail = ({ rows, date, totalDropFromCache, inByTable }: { rows: Row[];
     if (!existing || r.id.localeCompare(existing.id) > 0) byName.set(n, r);
   }
   const sorted = [...byName.entries()]
-    .sort(([a], [b]) => GROUP_ORDER.indexOf(tableGroupOf(a)) - GROUP_ORDER.indexOf(tableGroupOf(b)) || naturalCompare(a, b))
+    .sort(([a], [b]) => GAME_GROUP_ORDER.indexOf(tableGroupOf(a)) - GAME_GROUP_ORDER.indexOf(tableGroupOf(b)) || naturalCompare(a, b))
     .map(([, r]) => r);
 
   const dropOf = (r: Row) => Number(inByTable?.get(r.table_id) || 0);

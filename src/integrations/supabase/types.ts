@@ -12960,6 +12960,36 @@ export type Database = {
         }
         Relationships: []
       }
+      table_game_types: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          id: string
+          label: string
+          legacy_games: string[]
+          sort_order: number
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          label: string
+          legacy_games?: string[]
+          sort_order?: number
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          label?: string
+          legacy_games?: string[]
+          sort_order?: number
+        }
+        Relationships: []
+      }
       table_head_count: {
         Row: {
           casino_id: string

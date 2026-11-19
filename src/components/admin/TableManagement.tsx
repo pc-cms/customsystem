@@ -5,7 +5,8 @@
  *  - Rename inline
  *  - Set Display Order (drives sorting across Dashboard, Tables Tracking, Tracker, etc.)
  */
-import { GAME_GROUP_LABEL, gameGroupOf } from "@/lib/table-game-group";
+import { GAME_GROUP_LABEL, gameGroupOf, groupFromName } from "@/lib/table-game-group";
+import { useGameTypes } from "@/hooks/use-game-types";
 import { useState, useMemo } from "react";
 import { useGamingTables, useArchiveTable, useRenameTable } from "@/hooks/use-tables";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -22,17 +23,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Check, X, Pencil, LayoutGrid, Plus } from "lucide-react";
 import { toast } from "sonner";
 
-const GAME_OPTIONS = [
-  "American Roulette",
-  "Blackjack",
-  "Texas Holdem",
-  "Poker",
-  "Club Poker",
-  "Omaha",
-  "PLO",
-  "Baccarat",
-  "Niu Niu",
-];
 
 const TableManagement = () => {
   const { data: tables = [], isLoading } = useGamingTables(true); // include archived
@@ -40,6 +30,30 @@ const TableManagement = () => {
   const renameTable = useRenameTable();
   const qc = useQueryClient();
   const { user } = useAuth();
+  const { types: gameTypes } = useGameTypes();
+  const GAME_OPTIONS = gameTypes.length ? gameTypes.map(t => t.label) : ["American Roulette", "Poker", "Blackjack", "Niu Niu", "Baccarat", "Club Poker"];
+  const [showNewType, setShowNewType] = useState(false);
+  const [typeCode, setTypeCode] = useState("");
+  const [typeLabel, setTypeLabel] = useState("");
+  const createType = useMutation({
+    mutationFn: async () => {
+      const code = typeCode.trim().toUpperCase();
+      const label = typeLabel.trim();
+      if (!/^[A-Z0-9]{1,6}$/.test(code)) throw new Error("Code: 1–6 latin letters or digits");
+      if (!label) throw new Error("Name is required");
+      const maxSort = gameTypes.reduce((m, t) => Math.max(m, t.sort_order), 0);
+      const { error } = await (supabase as any).from("table_game_types").insert({ code, label, sort_order: maxSort + 10, created_by: user?.id ?? null });
+      if (error) throw new Error(String(error.message).includes("uniq") ? "This game type already exists" : error.message);
+      return label;
+    },
+    onSuccess: (label) => {
+      qc.invalidateQueries({ queryKey: ["table-game-types"] });
+      setNewGame(label);
+      setTypeCode(""); setTypeLabel(""); setShowNewType(false);
+      toast.success("Game type added");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
   const { activeCasinoId: casinoId } = useCasino();
 
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -174,6 +188,9 @@ const TableManagement = () => {
                   {GAME_OPTIONS.map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}
                 </SelectContent>
               </Select>
+              <button type="button" className="text-[11px] text-primary hover:underline" onClick={() => setShowNewType(v => !v)}>
+                + New game type
+              </button>
             </div>
             <div className="space-y-1">
               <label className="text-xs text-muted-foreground">Display Order</label>
@@ -191,9 +208,22 @@ const TableManagement = () => {
               </Button>
             </div>
           </div>
-          {newName.trim() && gameGroupOf(newName, null) !== "OTHER" && gameGroupOf(newName, null) !== gameGroupOf("", newGame) && (
+          {showNewType && (
+            <div className="flex items-end gap-2 flex-wrap rounded border border-border p-2">
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">Code</label>
+                <Input value={typeCode} onChange={e => setTypeCode(e.target.value)} placeholder="e.g. SB" className="font-mono w-24" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">Game name</label>
+                <Input value={typeLabel} onChange={e => setTypeLabel(e.target.value)} placeholder="e.g. Sic Bo" className="w-48" />
+              </div>
+              <Button size="sm" onClick={() => createType.mutate()} disabled={createType.isPending}>Add</Button>
+            </div>
+          )}
+          {newName.trim() && groupFromName(newName) && groupFromName(newName) !== gameGroupOf("", newGame) && (
             <p className="text-[11px] text-warning">
-              Name "{newName.trim()}" looks like {GAME_GROUP_LABEL[gameGroupOf(newName, null)]}, but game is {newGame}.
+              Name "{newName.trim()}" looks like {GAME_GROUP_LABEL[groupFromName(newName)!]}, but game is {newGame}.
             </p>
           )}
           <p className="text-[11px] text-muted-foreground">

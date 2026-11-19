@@ -1,19 +1,19 @@
 import { describe, it, expect } from "vitest";
-import { gameGroupOf } from "./table-game-group";
+import { gameGroupOf, setGameTypes, GAME_GROUP_ORDER } from "./table-game-group";
 
 describe("gameGroupOf", () => {
-  it("NU1 and N01 are Niu Niu even if stored as roulette", () => {
+  it("stored game decides the type", () => {
     expect(gameGroupOf("NU1", "Niu Niu")).toBe("NIU");
-    expect(gameGroupOf("N01", "American Roulette")).toBe("NIU");
-  });
-  it("Baccarat tables are Baccarat even if stored as poker", () => {
-    expect(gameGroupOf("Baccarat", "Texas Holdem")).toBe("BAC");
-    expect(gameGroupOf("BC1", "Baccarat")).toBe("BAC");
-  });
-  it("roulette and card games are separate", () => {
+    expect(gameGroupOf("N01", "Niu Niu")).toBe("NIU");
+    expect(gameGroupOf("Baccarat", "Baccarat")).toBe("BAC");
+    expect(gameGroupOf("P3", "Texas Holdem")).toBe("PK");
     expect(gameGroupOf("AR2", "American Roulette")).toBe("AR");
-    expect(gameGroupOf("P3", "Poker")).toBe("PK");
-    expect(gameGroupOf("BJ1", "Blackjack")).toBe("BJ");
     expect(gameGroupOf("Club", "Club Poker")).toBe("CLUB");
+  });
+  it("no Other group: a new managed type is its own group", () => {
+    setGameTypes([{ code: "SB", label: "Sic Bo", sort_order: 70, legacy_games: [] },
+      { code: "AR", label: "American Roulette", sort_order: 10, legacy_games: [] }]);
+    expect(gameGroupOf("SB1", "Sic Bo")).toBe("SB");
+    expect(GAME_GROUP_ORDER).not.toContain("OTHER");
   });
 });
