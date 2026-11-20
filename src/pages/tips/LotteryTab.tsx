@@ -3,8 +3,8 @@
  *
  * Rules (manual, casino-set):
  *  - Period = the 7-day window Fri..Thu containing the picked date.
- *  - Each player's RESULT for the period = cashout − drop (cashout-buy).
- *  - 1 ticket per full 500,000 of result; losing players get double tickets.
+ *  - Each DAY is independent: day result = cashout − drop; tickets per day
+ *    = 1 per full 500,000, losing day x2. Weekly tickets = sum of daily tickets.
  *  - Round-up rule: a remainder ≥ 270,000 grants one extra ticket.
  *  - Players with 0 tickets are hidden.
  *  - "Print" produces a clean Name + Tickets list.
@@ -20,9 +20,7 @@ import { fmtDateOnly } from "@/lib/format-date";
 import { formatNumberSpaces } from "@/lib/currency";
 import { usePlayers, usePlayerEconomyRange } from "@/hooks/use-players";
 import PrintPortal from "@/components/cage/PrintPortal";
-
-const TICKET_UNIT = 500_000;
-const ROUNDUP_THRESHOLD = 270_000;
+import { ticketsForResult } from "@/lib/lottery-tickets";
 
 /** Compute Friday on/before the given local date, return YYYY-MM-DD. */
 const fridayOnOrBefore = (d: Date): string => {
@@ -37,17 +35,6 @@ const addDays = (iso: string, n: number): string => {
   return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
 };
 
-const ticketsForResult = (result: number): number => {
-  const abs = Math.abs(result);
-  if (abs === 0) return 0;
-  const full = Math.floor(abs / TICKET_UNIT);
-  const remainder = abs - full * TICKET_UNIT;
-  const base = full + (remainder >= ROUNDUP_THRESHOLD ? 1 : 0);
-  // Losing players (negative result) get double tickets.
-  return result < 0 ? base * 2 : base;
-};
-
-
 const playerName = (p: any) => {
   const nick = p.nickname ? ` "${p.nickname}"` : "";
   return `${p.last_name ?? ""} ${p.first_name ?? ""}${nick}`.trim() || "—";
@@ -59,21 +46,34 @@ export default function LotteryTab({ belowHeader }: { belowHeader?: ReactNode })
 
   const { data: players = [] } = usePlayers();
   const { data: econ } = usePlayerEconomyRange({ from: periodStart, to: periodEnd });
+  // Fixed 7 hooks — one per day of the Fri..Thu week.
+  const d0 = usePlayerEconomyRange({ from: periodStart, to: periodStart }).data;
+  const d1 = usePlayerEconomyRange({ from: addDays(periodStart, 1), to: addDays(periodStart, 1) }).data;
+  const d2 = usePlayerEconomyRange({ from: addDays(periodStart, 2), to: addDays(periodStart, 2) }).data;
+  const d3 = usePlayerEconomyRange({ from: addDays(periodStart, 3), to: addDays(periodStart, 3) }).data;
+  const d4 = usePlayerEconomyRange({ from: addDays(periodStart, 4), to: addDays(periodStart, 4) }).data;
+  const d5 = usePlayerEconomyRange({ from: addDays(periodStart, 5), to: addDays(periodStart, 5) }).data;
+  const d6 = usePlayerEconomyRange({ from: periodEnd, to: periodEnd }).data;
+  const days = [d0, d1, d2, d3, d4, d5, d6];
+  const daysReady = days.every(Boolean);
 
   const rows = useMemo(() => {
-    if (!econ) return [] as Array<{ id: string; name: string; result: number; tickets: number }>;
+    if (!econ || !daysReady) return [] as Array<{ id: string; name: string; result: number; tickets: number }>;
     const out: Array<{ id: string; name: string; result: number; tickets: number }> = [];
     for (const p of players as any[]) {
       const e = econ.get(p.id);
       if (!e) continue;
       const result = (e.cashout || 0) - (e.drop || 0);
-      const tickets = ticketsForResult(result);
+      const tickets = days.reduce((sum, dm) => {
+        const de = dm!.get(p.id);
+        return de ? sum + ticketsForResult((de.cashout || 0) - (de.drop || 0)) : sum;
+      }, 0);
       if (tickets <= 0) continue;
       out.push({ id: p.id, name: playerName(p), result, tickets });
     }
     out.sort((a, b) => b.tickets - a.tickets || b.result - a.result || a.name.localeCompare(b.name));
     return out;
-  }, [players, econ]);
+  }, [players, econ, daysReady, d0, d1, d2, d3, d4, d5, d6]);
 
   const totals = useMemo(() => ({
     players: rows.length,
@@ -88,7 +88,7 @@ export default function LotteryTab({ belowHeader }: { belowHeader?: ReactNode })
       <PageHeader
         icon={Ticket}
         title="Lottery"
-        subtitle="Weekly player draw · 1 ticket per 500 000 result (round up from 270 000) · losers get x2"
+        subtitle="Weekly player draw · tickets per day: 1 per 500 000 result (round up from 270 000) · losers get x2"
         centerSlot={
           <div className="flex items-center gap-6 text-center">
             <div>
