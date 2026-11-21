@@ -247,8 +247,8 @@ const LiveClosingReportV2 = ({
       <Card title="Bank Accounts">
         <CardTable
           cols={[
-            { key: "acc", label: "Account", width: "15%" },
-            { key: "cur", label: "Currency", width: "7%" },
+            { key: "acc", label: "Account", width: "13%" },
+            { key: "cur", label: "Currency", width: "9%" },
             { key: "open", label: "Opening", align: "right" },
             { key: "inn", label: "In", align: "right" },
             { key: "out", label: "Out", align: "right" },
