@@ -17,8 +17,8 @@ import { useSessionState } from "@/hooks/use-session-state";
 import { getBusinessDate } from "@/lib/business-day";
 import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
 import { MGMT_SHIFT_LABELS } from "@/hooks/use-management-rota";
-import { useAllShiftCodes } from "@/hooks/use-shift-codes";
-import { UNIFIED_ATT_COLORS, UNIFIED_SHIFT_COLORS } from "@/lib/shift-colors";
+import { useAllShiftCodes, sortShiftsByTime } from "@/hooks/use-shift-codes";
+import { UNIFIED_ATT_COLORS, UNIFIED_SHIFT_COLORS, getShiftColor } from "@/lib/shift-colors";
 
 const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
@@ -43,6 +43,12 @@ export default function ManagementSchedulePage({ mode }: { mode: "rota" | "atten
     if (c && c.is_working && c.start_time && c.end_time) return `${c.start_time.slice(0, 5)}–${c.end_time.slice(0, 5)} · ${Number(c.hours)}h`;
     return MGMT_SHIFT_LABELS[code as "D"];
   };
+  /** Legend codes: configured management codes for the active casino, else the legacy D/M/N. */
+  const legendCodes = useMemo(() => {
+    const configured = allCodes.filter((x) => x.casino_id === activeCasinoId && x.department === "management");
+    if (configured.length) return sortShiftsByTime(configured.map((c) => c.code), configured);
+    return ["D", "M", "N"];
+  }, [allCodes, activeCasinoId]);
   const isNetwork = roles.some((r) => NETWORK_ROLES.includes(r));
   const isCasinoMgr = roles.some((r) => CASINO_ROLES.includes(r));
   const canEditBlock = (block: MgmtBlock, casinoId: string | null) => {
@@ -90,8 +96,8 @@ export default function ManagementSchedulePage({ mode }: { mode: "rota" | "atten
               </Button>
             </div>
             <div className="flex items-center gap-1.5 flex-wrap justify-center py-0.5">
-              {(["D", "M", "N"] as const).map((s) => (
-                <span key={s} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono ${UNIFIED_SHIFT_COLORS[s]}`}>
+              {legendCodes.map((s) => (
+                <span key={s} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono ${getShiftColor(s)}`}>
                   <span className="font-bold">{s}</span>
                   <span className="opacity-80">{legendLabel(s)}</span>
                 </span>
