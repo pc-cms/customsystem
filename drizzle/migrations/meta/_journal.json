@@ -295,6 +295,13 @@
       "when": 1795099106820,
       "tag": "0041_restrict_activity_logs_purge",
       "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1795444179822,
+      "tag": "0042_migration",
+      "breakpoints": true
     }
   ]
 }
