@@ -17,6 +17,7 @@ import { useSessionState } from "@/hooks/use-session-state";
 import { getBusinessDate } from "@/lib/business-day";
 import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
 import { MGMT_SHIFT_LABELS } from "@/hooks/use-management-rota";
+import { useAllShiftCodes } from "@/hooks/use-shift-codes";
 import { UNIFIED_ATT_COLORS, UNIFIED_SHIFT_COLORS } from "@/lib/shift-colors";
 
 const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -36,6 +37,12 @@ export default function ManagementSchedulePage({ mode }: { mode: "rota" | "atten
   const canEdit = roles.some((r) => EDIT_ROLES.includes(r)) || isCctvUser;
   const cctvOnly = isCctvUser && !roles.some((r) => EDIT_ROLES.includes(r));
   const { activeCasinoId } = useCasino();
+  const { data: allCodes = [] } = useAllShiftCodes();
+  const legendLabel = (code: string) => {
+    const c = allCodes.find((x) => x.casino_id === activeCasinoId && x.department === "management" && x.code === code);
+    if (c && c.is_working && c.start_time && c.end_time) return `${c.start_time.slice(0, 5)}–${c.end_time.slice(0, 5)} · ${Number(c.hours)}h`;
+    return MGMT_SHIFT_LABELS[code as "D"];
+  };
   const isNetwork = roles.some((r) => NETWORK_ROLES.includes(r));
   const isCasinoMgr = roles.some((r) => CASINO_ROLES.includes(r));
   const canEditBlock = (block: MgmtBlock, casinoId: string | null) => {
@@ -86,7 +93,7 @@ export default function ManagementSchedulePage({ mode }: { mode: "rota" | "atten
               {(["D", "M", "N"] as const).map((s) => (
                 <span key={s} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono ${UNIFIED_SHIFT_COLORS[s]}`}>
                   <span className="font-bold">{s}</span>
-                  <span className="opacity-80">{MGMT_SHIFT_LABELS[s]}</span>
+                  <span className="opacity-80">{legendLabel(s)}</span>
                 </span>
               ))}
               <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono ${UNIFIED_SHIFT_COLORS.N}`}>

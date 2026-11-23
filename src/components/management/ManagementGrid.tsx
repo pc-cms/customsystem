@@ -351,7 +351,8 @@ export default function ManagementGrid({ month, mode, canEdit, cctvOnly = false,
     const cityText = isCctv
       ? [...cities.entries()].map(([id, n]) => `${cityCodeById.get(id)} ${n}`).join(" · ")
       : "";
-    return { days, hours, cityText, shifts };
+    const formula = [...shifts.entries()].map(([c, n]) => `${c} ${n}×${mgmtHours(slot.casino_id, c)}h`).join(" + ");
+    return { days, hours, cityText, shifts, formula };
   };
 
   if (isLoading) return <div className="p-4 text-sm text-muted-foreground">Loading…</div>;
@@ -448,12 +449,12 @@ export default function ManagementGrid({ month, mode, canEdit, cctvOnly = false,
                       })}
                       <td className="border-b border-l border-border bg-muted/30 px-2 py-0.5 text-right font-mono text-[11px] whitespace-nowrap">
                         {person ? (
-                          <>
+                          <div title={t.formula ? `${t.formula} = ${t.hours}h` : undefined}>
                             <span className="font-bold">{t.days}d</span>{" "}
                             <span className="text-muted-foreground">{t.hours}h</span>
                             {!isCctv && t.shifts.size > 0 && <div className="flex justify-end gap-0.5 pt-0.5">{[...t.shifts.entries()].map(([code, count]) => <span key={code} className={`inline-flex items-center justify-center rounded px-1 font-mono text-[10px] ${getShiftColor(code)}`}>{code} {count}</span>)}</div>}
                             {t.cityText && <div className="text-[9px] text-muted-foreground">{t.cityText}</div>}
-                          </>
+                          </div>
                         ) : (
                           <span className="text-muted-foreground/40">·</span>
                         )}

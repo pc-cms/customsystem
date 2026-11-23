@@ -50,11 +50,11 @@ export type MgmtAttRow = {
 };
 
 /** Manager shift → planned hours. CCTV is always 12h. */
-export const MGMT_SHIFT_HOURS: Record<string, number> = { D: 8, M: 8, N: 12, L: 0 };
+export const MGMT_SHIFT_HOURS: Record<string, number> = { D: 8, M: 12, N: 8, L: 0 };
 export const MGMT_SHIFT_LABELS: Record<MgmtShift, string> = {
   D: "10:00–18:00",
-  M: "13:00–21:00",
-  N: "18:00–06:00",
+  M: "18:00–06:00",
+  N: "22:00–06:00",
   L: "Leave",
 };
 export const CCTV_HOURS = 12;
