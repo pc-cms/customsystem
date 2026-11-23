@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { CellPicker } from "@/components/grids/CellPicker";
-import { useAllShiftCodes, SHIFT_CODES_FROM } from "@/hooks/use-shift-codes";
+import { useAllShiftCodes, SHIFT_CODES_FROM, sortShiftsByTime } from "@/hooks/use-shift-codes";
 import { UNIFIED_ATT_COLORS, UNIFIED_SHIFT_COLORS, getShiftColor } from "@/lib/shift-colors";
 import {
   CCTV_HOURS,
@@ -82,6 +82,14 @@ export default function ManagementGrid({ month, mode, canEdit, cctvOnly = false,
       : undefined;
     if (c && c.is_working && c.start_time && c.end_time) return `${c.start_time.slice(0, 5)}–${c.end_time.slice(0, 5)} · ${Number(c.hours)}h`;
     return MGMT_SHIFT_LABELS[shift as MgmtShift];
+  };
+  /** Codes offered in the dropdown: configured management codes for the casino, else the legacy D/M/N/L. */
+  const shiftsFor = (casinoId: string | null): string[] => {
+    if (useCodes && casinoId) {
+      const configured = allCodes.filter((x) => x.casino_id === casinoId && x.department === "management");
+      if (configured.length) return sortShiftsByTime(configured.map((c) => c.code), configured);
+    }
+    return SHIFTS;
   };
   const { days } = monthBounds(month);
   const { data: casinos = [] } = useAllCasinos();
@@ -160,11 +168,11 @@ export default function ManagementGrid({ month, mode, canEdit, cctvOnly = false,
         }]
       : [{
           label: "Shift",
-          options: SHIFTS.map((s) => ({
+          options: shiftsFor(casinoId).map((s) => ({
             value: s,
             label: s,
             title: mgmtLabel(casinoId, s),
-            className: UNIFIED_SHIFT_COLORS[s],
+            className: getShiftColor(s),
           })),
         }];
 
@@ -199,7 +207,7 @@ export default function ManagementGrid({ month, mode, canEdit, cctvOnly = false,
   };
 
   /** Resolve a typed token to a rota value for the given block. */
-  const parseToken = (raw: string, isCctv: boolean, current: string | null): string | null | undefined => {
+  const parseToken = (raw: string, isCctv: boolean, current: string | null, casinoId: string | null): string | null | undefined => {
     const key = raw.trim().toUpperCase();
     if (!key) return undefined;
     if (isCctv) {
@@ -216,7 +224,7 @@ export default function ManagementGrid({ month, mode, canEdit, cctvOnly = false,
       const at = matches.findIndex((c) => c.id === curId);
       return `city:${matches[(at + 1) % matches.length].id}`;
     }
-    return (SHIFTS as string[]).includes(key) ? key : undefined;
+    return shiftsFor(casinoId).includes(key) ? key : undefined;
   };
 
   const applyValue = (slot: MgmtSlot, date: string, v: string | null) => {
@@ -257,7 +265,7 @@ export default function ManagementGrid({ month, mode, canEdit, cctvOnly = false,
     const parsed =
       mode === "attendance"
         ? (["A", "L", "S"].includes(key.toUpperCase()) ? key.toUpperCase() : undefined)
-        : parseToken(key, isCctv, current);
+        : parseToken(key, isCctv, current, slot.casino_id);
     if (parsed === undefined) return;
     e.preventDefault();
     applyValue(slot, date, parsed);
@@ -277,7 +285,7 @@ export default function ManagementGrid({ month, mode, canEdit, cctvOnly = false,
           ? (["A", "L", "S"].includes(tok) ? tok : ["-", "·", "."].includes(tok) ? null : undefined)
           : ["-", "·", "."].includes(tok)
             ? null
-            : parseToken(tok, isCctv, null);
+            : parseToken(tok, isCctv, null, slot.casino_id);
       if (v === undefined) return;
       applyValue(slot, d, v);
     });
@@ -293,7 +301,7 @@ export default function ManagementGrid({ month, mode, canEdit, cctvOnly = false,
       const cls = r?.city
         ? "bg-blue-700 text-white font-bold"
         : r?.shift
-          ? UNIFIED_SHIFT_COLORS[r.shift]
+          ? getShiftColor(r.shift)
           : "text-muted-foreground/40";
       return (
         <CellPicker
