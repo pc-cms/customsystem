@@ -16013,6 +16013,7 @@ export type Database = {
         | "SW"
         | "ESW"
         | "D"
+        | "O"
       staff_department:
         | "security"
         | "cashier"
@@ -16343,6 +16344,7 @@ export const Constants = {
         "SW",
         "ESW",
         "D",
+        "O",
       ],
       staff_department: [
         "security",
