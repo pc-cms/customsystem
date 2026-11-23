@@ -76,6 +76,13 @@ export default function ManagementGrid({ month, mode, canEdit, cctvOnly = false,
     }
     return MGMT_SHIFT_HOURS[shift] ?? 8;
   };
+  const mgmtLabel = (casinoId: string | null, shift: string) => {
+    const c = useCodes && casinoId
+      ? allCodes.find((x) => x.casino_id === casinoId && x.department === "management" && x.code === shift)
+      : undefined;
+    if (c && c.is_working && c.start_time && c.end_time) return `${c.start_time.slice(0, 5)}–${c.end_time.slice(0, 5)} · ${Number(c.hours)}h`;
+    return MGMT_SHIFT_LABELS[shift as MgmtShift];
+  };
   const { days } = monthBounds(month);
   const { data: casinos = [] } = useAllCasinos();
   const { data: people = [] } = useManagementPeople();
@@ -138,7 +145,7 @@ export default function ManagementGrid({ month, mode, canEdit, cctvOnly = false,
 
   const usedPersonIds = useMemo(() => new Set(slots.map((s) => s.person_id).filter(Boolean) as string[]), [slots]);
 
-  const rotaRows = (isCctv: boolean) =>
+  const rotaRows = (isCctv: boolean, casinoId: string | null = null) =>
     isCctv
       ? [{
           label: "City",
@@ -156,7 +163,7 @@ export default function ManagementGrid({ month, mode, canEdit, cctvOnly = false,
           options: SHIFTS.map((s) => ({
             value: s,
             label: s,
-            title: MGMT_SHIFT_LABELS[s],
+            title: mgmtLabel(casinoId, s),
             className: UNIFIED_SHIFT_COLORS[s],
           })),
         }];
@@ -293,8 +300,8 @@ export default function ManagementGrid({ month, mode, canEdit, cctvOnly = false,
           value={value}
           display={display}
           disabled={!editable}
-          rows={rotaRows(isCctv)}
-          title={r?.shift ? MGMT_SHIFT_LABELS[r.shift] : undefined}
+          rows={rotaRows(isCctv, slot.casino_id)}
+          title={r?.shift ? mgmtLabel(slot.casino_id, r.shift) : undefined}
           cellClassName={`w-full h-6 rounded text-[10px] font-mono focus:outline-none focus:ring-1 focus:ring-primary ${cls} ${editable ? "hover:ring-1 hover:ring-primary" : ""}`}
           onSelect={(v) => applyValue(slot, date, v)}
           onKeyDown={(e) => editable && handleKeyDown(e, slot, date, isCctv, value)}
