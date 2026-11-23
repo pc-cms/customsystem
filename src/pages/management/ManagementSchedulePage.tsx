@@ -39,13 +39,13 @@ export default function ManagementSchedulePage({ mode }: { mode: "rota" | "atten
   const { activeCasinoId } = useCasino();
   const { data: allCodes = [] } = useAllShiftCodes();
   const legendLabel = (code: string) => {
-    const c = allCodes.find((x) => x.casino_id === activeCasinoId && x.department === "management" && x.code === code);
+    const c = allCodes.find((x) => x.casino_id === activeCasinoId && x.department === "management" && (x.unit ?? null) === null && x.code === code);
     if (c && c.is_working && c.start_time && c.end_time) return `${c.start_time.slice(0, 5)}–${c.end_time.slice(0, 5)} · ${Number(c.hours)}h`;
     return MGMT_SHIFT_LABELS[code as "D"];
   };
   /** Legend codes: configured management codes for the active casino, else the legacy D/M/N. */
   const legendCodes = useMemo(() => {
-    const configured = allCodes.filter((x) => x.casino_id === activeCasinoId && x.department === "management");
+    const configured = allCodes.filter((x) => x.casino_id === activeCasinoId && x.department === "management" && (x.unit ?? null) === null);
     if (configured.length) return sortShiftsByTime(configured.map((c) => c.code), configured);
     return ["D", "M", "N"];
   }, [allCodes, activeCasinoId]);

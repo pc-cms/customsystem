@@ -20,8 +20,7 @@ import {
   useShiftCodes,
   useUpsertShiftCode,
   type ShiftCode,
-  type ShiftDept,
-} from "@/hooks/use-shift-codes";
+  type ShiftDept, MGMT_OFFICE_UNIT } from "@/hooks/use-shift-codes";
 
 export const SHIFT_CODE_EDIT_ROLES = ["super_admin", "finance_manager", "shift_manager", "boss", "general_manager", "manager"];
 const NETWORK_ROLES = ["super_admin", "finance_manager", "boss", "general_manager"];
@@ -124,7 +123,11 @@ export default function ShiftCodesDialog({ defaultDept = "floor", defaultUnit }:
   const [unit, setUnit] = useState<string | null>(defaultUnit ?? DEPT_UNITS[defaultDept]?.[0]?.key ?? null);
   const [adding, setAdding] = useState(false);
   useEffect(() => { if (!casinoId && (activeCasinoId || casinos[0])) setCasinoId(activeCasinoId || (casinos[0] as any)?.id); }, [activeCasinoId, casinos]);
-  const { data: codes } = useShiftCodes(casinoId, dept, unit);
+  // Office management codes are shared (one set for the Office block); stored under a fixed home casino.
+  const isMgmtOffice = dept === "management" && unit === MGMT_OFFICE_UNIT;
+  const officeHomeId = ((casinos as any[]).find((c) => c.slug === "arusha") || (casinos as any[])[0])?.id ?? null;
+  const effCasinoId = isMgmtOffice ? officeHomeId : casinoId;
+  const { data: codes } = useShiftCodes(effCasinoId, dept, unit);
   const units = DEPT_UNITS[dept] || [];
   const visibleCasinos = useMemo(() => (isNetwork ? casinos : casinos.filter((c: any) => c.id === activeCasinoId)), [isNetwork, casinos, activeCasinoId]);
 
@@ -138,14 +141,23 @@ export default function ShiftCodesDialog({ defaultDept = "floor", defaultUnit }:
       <DialogContent className="max-w-2xl">
         <DialogHeader><DialogTitle>Shift Codes</DialogTitle></DialogHeader>
         <div className="flex gap-2 flex-wrap">
-          <Select value={casinoId || ""} onValueChange={setCasinoId}>
+          {!isMgmtOffice && <Select value={casinoId || ""} onValueChange={setCasinoId}>
             <SelectTrigger className="h-8 w-[160px] text-xs"><SelectValue placeholder="Casino" /></SelectTrigger>
             <SelectContent>{visibleCasinos.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
-          </Select>
+          </Select>}
           <Select value={dept} onValueChange={(v) => { const nd = v as ShiftDept; setDept(nd); setUnit(DEPT_UNITS[nd]?.[0]?.key ?? null); setAdding(false); }}>
             <SelectTrigger className="h-8 w-[160px] text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>{DEPTS.map((d) => <SelectItem key={d.key} value={d.key}>{d.label}</SelectItem>)}</SelectContent>
           </Select>
+          {dept === "management" && isNetwork && (
+            <Select value={unit === MGMT_OFFICE_UNIT ? "office" : "casino"} onValueChange={(v) => { setUnit(v === "office" ? MGMT_OFFICE_UNIT : null); setAdding(false); }}>
+              <SelectTrigger className="h-8 w-[160px] text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="casino">Casino</SelectItem>
+                <SelectItem value="office">Office</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
           {units.length > 0 && (
             <Select value={unit || ""} onValueChange={(v) => { setUnit(v); setAdding(false); }}>
               <SelectTrigger className="h-8 w-[160px] text-xs"><SelectValue /></SelectTrigger>
@@ -167,9 +179,9 @@ export default function ShiftCodesDialog({ defaultDept = "floor", defaultUnit }:
               </tr>
             </thead>
             <tbody>
-              {casinoId && codes.map((c) => <Row key={c.id} row={c} casinoId={casinoId} dept={dept} unit={unit} />)}
-              {casinoId && adding && (
-                <Row isNew row={{ code: "", start_time: "09:00", end_time: "17:00", is_working: true }} casinoId={casinoId} dept={dept} unit={unit} onDone={() => setAdding(false)} />
+              {effCasinoId && codes.map((c) => <Row key={c.id} row={c} casinoId={effCasinoId} dept={dept} unit={unit} />)}
+              {effCasinoId && adding && (
+                <Row isNew row={{ code: "", start_time: "09:00", end_time: "17:00", is_working: true }} casinoId={effCasinoId} dept={dept} unit={unit} onDone={() => setAdding(false)} />
               )}
             </tbody>
           </table>

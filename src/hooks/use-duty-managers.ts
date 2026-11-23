@@ -32,7 +32,7 @@ export function resolveDutyManagers(
   const byPerson = new Map(people.filter((p) => p.is_active && p.kind === "manager").map((p) => [p.id, p.name]));
   const absent = new Set(attendance.filter((a) => a.value === "A" || a.value === "L" || a.value === "S")
     .map((a) => `${a.slot_id}|${a.date}`));
-  const byCode = new Map(codes.filter((c) => c.department === "management" && c.is_working)
+  const byCode = new Map(codes.filter((c) => c.department === "management" && (c.unit ?? null) === null && c.is_working)
     .map((c) => [`${c.casino_id}|${c.code}`, c]));
   const matches: Record<string, { start: number; names: string[] }> = {};
 
@@ -78,7 +78,7 @@ export function useDutyManagers(enabled: boolean) {
         supabase.from("management_rota" as any).select("slot_id, date, shift").gte("date", yesterday).lte("date", today),
         supabase.from("management_attendance" as any).select("slot_id, date, value").gte("date", yesterday).lte("date", today),
         supabase.from("management_people" as any).select("id, name, kind, is_active").eq("is_active", true).eq("kind", "manager"),
-        supabase.from("shift_codes" as any).select("casino_id, department, code, start_time, end_time, is_working").eq("department", "management"),
+        supabase.from("shift_codes" as any).select("casino_id, department, unit, code, start_time, end_time, is_working").eq("department", "management"),
       ]);
       for (const result of [slotsRes, rotaRes, attRes, peopleRes, codesRes]) {
         if (result.error) throw result.error;

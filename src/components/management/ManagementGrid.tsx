@@ -8,6 +8,7 @@
  * Rota mode      : cell = shift D / M / N / L (CCTV: city code ARU/MWZ/MBI/DOD).
  * Attendance mode: cell = auto value from the rota, overridable with A / L / S.
  */
+import { MGMT_OFFICE_UNIT } from "@/hooks/use-shift-codes";
 import React, { useEffect, useMemo, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -69,26 +70,27 @@ export default function ManagementGrid({ month, mode, canEdit, cctvOnly = false,
     canEditBlock ? canEditBlock(block, casinoId) : canEdit && (!cctvOnly || block === "cctv");
   const { data: allCodes = [] } = useAllShiftCodes();
   const useCodes = `${month}-01` >= SHIFT_CODES_FROM;
+  /** Management codes: casino blocks use their casino's codes; the Office block (casinoId null) uses the shared Office codes. */
+  const mgmtPool = (casinoId: string | null) =>
+    !useCodes
+      ? []
+      : casinoId
+        ? allCodes.filter((x) => x.casino_id === casinoId && x.department === "management" && (x.unit ?? null) === null)
+        : allCodes.filter((x) => x.department === "management" && x.unit === MGMT_OFFICE_UNIT);
   const mgmtHours = (casinoId: string | null, shift: string) => {
-    if (useCodes && casinoId) {
-      const c = allCodes.find((x) => x.casino_id === casinoId && x.department === "management" && x.code === shift);
-      if (c) return c.is_working ? Number(c.hours) : 0;
-    }
+    const c = mgmtPool(casinoId).find((x) => x.code === shift);
+    if (c) return c.is_working ? Number(c.hours) : 0;
     return MGMT_SHIFT_HOURS[shift] ?? 8;
   };
   const mgmtLabel = (casinoId: string | null, shift: string) => {
-    const c = useCodes && casinoId
-      ? allCodes.find((x) => x.casino_id === casinoId && x.department === "management" && x.code === shift)
-      : undefined;
+    const c = mgmtPool(casinoId).find((x) => x.code === shift);
     if (c && c.is_working && c.start_time && c.end_time) return `${c.start_time.slice(0, 5)}–${c.end_time.slice(0, 5)} · ${Number(c.hours)}h`;
     return MGMT_SHIFT_LABELS[shift as MgmtShift];
   };
-  /** Codes offered in the dropdown: configured management codes for the casino, else the legacy D/M/N/L. */
+  /** Codes offered in the dropdown: configured codes for the casino / Office, else the legacy D/M/N/L. */
   const shiftsFor = (casinoId: string | null): string[] => {
-    if (useCodes && casinoId) {
-      const configured = allCodes.filter((x) => x.casino_id === casinoId && x.department === "management");
-      if (configured.length) return sortShiftsByTime(configured.map((c) => c.code), configured);
-    }
+    const configured = mgmtPool(casinoId);
+    if (configured.length) return sortShiftsByTime(configured.map((c) => c.code), configured);
     return SHIFTS;
   };
   const { days } = monthBounds(month);

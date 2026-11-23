@@ -7,6 +7,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 export const SHIFT_CODES_FROM = "2026-09-01";
+/** Management codes for the Office block (shared, not per casino). Casino blocks use unit = null. */
+export const MGMT_OFFICE_UNIT = "office";
 export type ShiftDept = "pit" | "floor" | "security" | "office" | "management";
 
 export type ShiftCode = {
