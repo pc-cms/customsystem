@@ -377,10 +377,10 @@ export const useUpdateUserCasinoAccess = () => {
       }
 
       if (primaryCasinoId !== undefined) {
-        const { error: updErr } = await supabase
-          .from("profiles")
-          .update({ casino_id: primaryCasinoId })
-          .eq("user_id", userId);
+        const { error: updErr } = await supabase.rpc("admin_set_user_primary_casino", {
+          _user_id: userId,
+          _casino_id: primaryCasinoId,
+        });
         if (updErr) throw updErr;
       }
     },

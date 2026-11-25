@@ -14058,6 +14058,10 @@ export type Database = {
           table_name: string
         }[]
       }
+      admin_set_user_primary_casino: {
+        Args: { _casino_id: string; _user_id: string }
+        Returns: undefined
+      }
       am_issue_grant: {
         Args: {
           p_amount: number
