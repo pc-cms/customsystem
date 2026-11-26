@@ -1,18 +1,18 @@
-# Final Collection and Transactions rows in Dashboard TV Monthly Report
+# Строки Final Collection и Transactions в Monthly Report на Dashboard TV
 
-## What you will see
-In Dashboard TV → Monthly Report, directly under the **Collection** row, two new rows per casino plus total:
+## Что вы увидите
+В Dashboard TV → Monthly Report, сразу под строкой **Collection**, появятся две новые строки: по каждому казино и итог.
 
-1. **Final Collection** — the final collection amount for the month, entered manually.
-   - Only Finance Manager and Super Admin can enter or change it (click the cell → enter amount → save).
-   - Everyone else sees the value read-only; empty cells show `·`.
-2. **Transactions** — the month total from Office → Transactions (other incomes, voided excluded).
-   - Shown only after the month is closed for that casino; before closure the cell shows `·`.
+1. **Final Collection**: итоговая инкассация за месяц, её вписывают вручную.
+   - Вписывать и менять сумму могут только Finance Manager и Super Admin: нажать на ячейку, ввести сумму, сохранить.
+   - Остальные видят сумму, но изменить её не могут. Пока суммы нет, в ячейке стоит `·`.
+2. **Transactions**: итог за месяц из раздела Office → Transactions, без аннулированных записей.
+   - Сумма появляется только после закрытия месяца в этом казино. До закрытия в ячейке стоит `·`.
 
-Neither row changes Balance, Expected Profit or any other existing figure.
+Ни одна из новых строк не меняет Balance, Expected Profit и другие цифры отчёта.
 
-## Technical details
-- New table `fin_month_final_collection` (casino_id, month_start, amount_tzs, updated_by, updated_at; unique casino+month), RLS: read for authenticated users with casino access, write only via RPC checked for `finance_manager` / `super_admin`; changes logged by trigger into `fin_audit_log`.
-- Transactions total: sum of `fin_other_incomes` for the month (non-voided), returned only when a `fin_month_closures` row exists for that casino+month.
-- `use-boss-dashboard` / monthly hook fetch both values; `monthly-report-panel.tsx` adds the two rows with hints.
-- Small test: Transactions value hidden when month not closed, shown when closed.
+## Технические детали
+- Новая таблица `fin_month_final_collection` (casino_id, month_start, amount_tzs, updated_by, updated_at; одна запись на казино и месяц). Читать её могут пользователи с доступом к казино. Записывать можно только через RPC с проверкой ролей `finance_manager` / `super_admin`. Изменения пишет триггер в `fin_audit_log`.
+- Итог Transactions: сумма `fin_other_incomes` за месяц без аннулированных. Возвращается только если для этого казино и месяца есть запись в `fin_month_closures`.
+- Хук месячного отчёта загружает оба значения, в `monthly-report-panel.tsx` добавляются две строки с подсказками. Подписи в интерфейсе остаются на английском.
+- Небольшой тест: до закрытия месяца сумма Transactions скрыта, после закрытия видна.
